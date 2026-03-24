@@ -149,16 +149,32 @@
 
         const centroPadraoBrasil = { lat: -14.235, lng: -51.9253 };
         const nomeColecao = "nomeDoLocal";
+        let localSelecionadoId = null;
+        let mapaInicializado = false;
 
         function atualizarIframeMapa(coords, nome) {
             const lat = Number(coords.lat).toFixed(6);
             const lng = Number(coords.lng).toFixed(6);
-            mapaIframe.src = `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+            const proximoSrc = `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+
+            // Evita recarregar o iframe quando a posicao exibida nao mudou.
+            if (mapaIframe.dataset.currentSrc === proximoSrc) {
+                return;
+            }
+
+            mapaIframe.src = proximoSrc;
+            mapaIframe.dataset.currentSrc = proximoSrc;
             mapaEstado.textContent = `Exibindo no mapa: ${nome} (${lat}, ${lng}).`;
         }
 
         function mostrarCentroPadrao() {
-            mapaIframe.src = `https://www.google.com/maps?q=${centroPadraoBrasil.lat},${centroPadraoBrasil.lng}&z=4&output=embed`;
+            const proximoSrc = `https://www.google.com/maps?q=${centroPadraoBrasil.lat},${centroPadraoBrasil.lng}&z=4&output=embed`;
+
+            if (mapaIframe.dataset.currentSrc !== proximoSrc) {
+                mapaIframe.src = proximoSrc;
+                mapaIframe.dataset.currentSrc = proximoSrc;
+            }
+
             mapaEstado.textContent = "Mapa carregado. Selecione um local com coordenadas para focar.";
         }
 
@@ -298,6 +314,7 @@
                 botao.type = "button";
                 botao.textContent = "Ver no mapa";
                 botao.addEventListener("click", () => {
+                    localSelecionadoId = id;
                     atualizarIframeMapa(coords, nome);
                 });
                 li.appendChild(botao);
@@ -312,34 +329,66 @@
             if (snapshot.empty) {
                 estado.textContent = `Nenhum local encontrado na colecao '${nomeColecao}'.`;
                 mostrarCentroPadrao();
+                localSelecionadoId = null;
+                mapaInicializado = true;
                 return;
             }
 
             let primeiroComCoordenadas = null;
+            let localSelecionado = null;
 
             snapshot.forEach((doc) => {
                 const dados = doc.data();
                 const item = criarItemLocal(doc.id, dados);
                 lista.appendChild(item);
 
+                const coords = obterCoordenadas(dados);
+                const nome = dados.nomeDoLocal || dados.nome || dados.titulo || "Local";
+
                 if (!primeiroComCoordenadas) {
-                    const coords = obterCoordenadas(dados);
                     if (coords) {
                         primeiroComCoordenadas = {
                             coords,
-                            nome: dados.nomeDoLocal || dados.nome || dados.titulo || "Local"
+                            nome
                         };
                     }
+                }
+
+                if (localSelecionadoId && doc.id === localSelecionadoId && coords) {
+                    localSelecionado = { coords, nome };
                 }
             });
 
             estado.textContent = `${snapshot.size} local(is) carregado(s).`;
 
-            if (primeiroComCoordenadas) {
-                atualizarIframeMapa(primeiroComCoordenadas.coords, primeiroComCoordenadas.nome);
-            } else {
-                mostrarCentroPadrao();
-                mapaEstado.textContent = "Locais carregados, mas nenhum documento possui coordenadas validas.";
+            if (!mapaInicializado) {
+                mapaInicializado = true;
+
+                if (primeiroComCoordenadas) {
+                    atualizarIframeMapa(primeiroComCoordenadas.coords, primeiroComCoordenadas.nome);
+                } else {
+                    mostrarCentroPadrao();
+                    mapaEstado.textContent = "Locais carregados, mas nenhum documento possui coordenadas validas.";
+                }
+
+                return;
+            }
+
+            // Depois da carga inicial, atualiza mapa apenas do item selecionado manualmente.
+            if (localSelecionado) {
+                atualizarIframeMapa(localSelecionado.coords, localSelecionado.nome);
+                return;
+            }
+
+            if (localSelecionadoId && !localSelecionado) {
+                // Se o documento selecionado nao existe mais, volta ao primeiro com coordenadas.
+                localSelecionadoId = null;
+                if (primeiroComCoordenadas) {
+                    atualizarIframeMapa(primeiroComCoordenadas.coords, primeiroComCoordenadas.nome);
+                } else {
+                    mostrarCentroPadrao();
+                    mapaEstado.textContent = "Locais carregados, mas nenhum documento possui coordenadas validas.";
+                }
             }
         }
 
