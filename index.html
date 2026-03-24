@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel de Locais em Tempo Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f6f8;
+            color: #1f2937;
+        }
+
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        p {
+            margin: 0;
+        }
+
+        .subtitulo {
+            color: #4b5563;
+            margin-bottom: 14px;
+        }
+
+        #mapa {
+            width: 100%;
+            height: 380px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            background: #e5e7eb;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #ffffff;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        li strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #111827;
+        }
+
+        button {
+            margin-top: 8px;
+            border: 0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: #2563eb;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .estado {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                margin: 12px;
+            }
+
+            #mapa {
+                height: 280px;
+            }
+
+            button {
+                width: 100%;
+                min-height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Locais Salvos</h1>
+        <p class="subtitulo">Atualizacao em tempo real do Firestore.</p>
+        <iframe
+            id="mapa"
+            title="Mapa de locais"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+            src="about:blank"
+        ></iframe>
+        <p id="mapa-estado" class="estado">Carregando mapa...</p>
+        <ul id="locais-lista"></ul>
+        <p id="estado" class="estado">Carregando locais...</p>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
+        import {
+            getFirestore,
+            collection,
+            onSnapshot
+        } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMnCYEYdmL6G3Qck0rivbKi-g1P9lMyYU",
+            authDomain: "maps2-6bf71.firebaseapp.com",
+            projectId: "maps2-6bf71",
+            storageBucket: "maps2-6bf71.firebasestorage.app",
+            messagingSenderId: "944119305149",
+            appId: "1:944119305149:web:91510adbd653e46edf78d4",
+            measurementId: "G-SNRTBFDX41"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Analytics so funciona em ambientes com suporte (ex.: nao funciona em alguns contextos locais).
+        isSupported().then((ok) => {
+            if (ok) {
+                getAnalytics(app);
+            }
+        });
+
+        const lista = document.getElementById("locais-lista");
+        const estado = document.getElementById("estado");
+        const mapaEstado = document.getElementById("mapa-estado");
+        const mapaIframe = document.getElementById("mapa");
+
+        const centroPadraoBrasil = { lat: -14.235, lng: -51.9253 };
+        const nomeColecao = "nomeDoLocal";
+
+        function atualizarIframeMapa(coords, nome) {
+            const lat = Number(coords.lat).toFixed(6);
+            const lng = Number(coords.lng).toFixed(6);
+            mapaIframe.src = `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+            mapaEstado.textContent = `Exibindo no mapa: ${nome} (${lat}, ${lng}).`;
+        }
+
+        function mostrarCentroPadrao() {
+            mapaIframe.src = `https://www.google.com/maps?q=${centroPadraoBrasil.lat},${centroPadraoBrasil.lng}&z=4&output=embed`;
+            mapaEstado.textContent = "Mapa carregado. Selecione um local com coordenadas para focar.";
+        }
+
+        function obterCoordenadas(dados) {
+            if (
+                typeof dados.latitude === "number" &&
+                typeof dados.longitude === "number"
+            ) {
+                return { lat: dados.latitude, lng: dados.longitude };
+            }
+
+            if (
+                typeof dados.latitude === "string" &&
+                typeof dados.longitude === "string"
+            ) {
+                const lat = Number(dados.latitude.replace(",", "."));
+                const lng = Number(dados.longitude.replace(",", "."));
+                if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+                    return { lat, lng };
+                }
+            }
+
+            if (typeof dados.lat === "number" && typeof dados.lng === "number") {
+                return { lat: dados.lat, lng: dados.lng };
+            }
+
+            if (
+                dados.coordenadas &&
+                typeof dados.coordenadas.latitude === "number" &&
+                typeof dados.coordenadas.longitude === "number"
+            ) {
+                return {
+                    lat: dados.coordenadas.latitude,
+                    lng: dados.coordenadas.longitude
+                };
+            }
+
+            if (typeof dados.coordenadas === "string") {
+                const coords = converterCoordenadaTexto(dados.coordenadas);
+                if (coords) {
+                    return coords;
+                }
+            }
+
+            return null;
+        }
+
+        function converterCoordenadaTexto(texto) {
+            const valor = texto
+                .replace("[", "")
+                .replace("]", "")
+                .trim();
+
+            const partes = valor.split(",");
+            if (partes.length !== 2) {
+                return null;
+            }
+
+            const lat = parseParteCoordenada(partes[0]);
+            const lng = parseParteCoordenada(partes[1]);
+
+            if (lat === null || lng === null) {
+                return null;
+            }
+
+            return { lat, lng };
+        }
+
+        function parseParteCoordenada(parte) {
+            const limpa = parte
+                .trim()
+                .replace("°", "")
+                .replace(/\s+/g, " ");
+
+            const match = limpa.match(/(-?\d+(?:\.\d+)?)\s*([NSEW])?/i);
+            if (!match) {
+                return null;
+            }
+
+            let numero = Number(match[1]);
+            if (Number.isNaN(numero)) {
+                return null;
+            }
+
+            const direcao = match[2] ? match[2].toUpperCase() : "";
+            if (direcao === "S" || direcao === "W") {
+                numero = -Math.abs(numero);
+            }
+
+            return numero;
+        }
+
+        function formatarCoordenadasTexto(coords) {
+            const lat = Number(coords.lat).toFixed(6);
+            const lng = Number(coords.lng).toFixed(6);
+            return `Lat: ${lat}, Lng: ${lng}`;
+        }
+
+        function obterEnderecoExibicao(dados) {
+            if (typeof dados.endereco === "string" && dados.endereco.trim()) {
+                return dados.endereco;
+            }
+
+            if (typeof dados.localizacao === "string" && dados.localizacao.trim()) {
+                return dados.localizacao;
+            }
+
+            if (typeof dados.coordenadas === "string" && dados.coordenadas.trim()) {
+                return dados.coordenadas;
+            }
+
+            const coords = obterCoordenadas(dados);
+            if (coords) {
+                return formatarCoordenadasTexto(coords);
+            }
+
+            return "Endereco nao informado";
+        }
+
+        function criarItemLocal(id, dados) {
+            const li = document.createElement("li");
+
+            const nome = dados.nomeDoLocal || dados.nome || dados.titulo || "Local sem nome";
+            const endereco = obterEnderecoExibicao(dados);
+            const descricao = dados.descricao || "";
+
+            li.innerHTML = `
+                <strong>${nome}</strong>
+                <span>${endereco}</span>
+                ${descricao ? `<p>${descricao}</p>` : ""}
+                <small>ID: ${id}</small>
+            `;
+
+            const coords = obterCoordenadas(dados);
+            if (coords) {
+                const botao = document.createElement("button");
+                botao.type = "button";
+                botao.textContent = "Ver no mapa";
+                botao.addEventListener("click", () => {
+                    atualizarIframeMapa(coords, nome);
+                });
+                li.appendChild(botao);
+            }
+
+            return li;
+        }
+
+        function renderizarLocais(snapshot) {
+            lista.innerHTML = "";
+
+            if (snapshot.empty) {
+                estado.textContent = `Nenhum local encontrado na colecao '${nomeColecao}'.`;
+                mostrarCentroPadrao();
+                return;
+            }
+
+            let primeiroComCoordenadas = null;
+
+            snapshot.forEach((doc) => {
+                const dados = doc.data();
+                const item = criarItemLocal(doc.id, dados);
+                lista.appendChild(item);
+
+                if (!primeiroComCoordenadas) {
+                    const coords = obterCoordenadas(dados);
+                    if (coords) {
+                        primeiroComCoordenadas = {
+                            coords,
+                            nome: dados.nomeDoLocal || dados.nome || dados.titulo || "Local"
+                        };
+                    }
+                }
+            });
+
+            estado.textContent = `${snapshot.size} local(is) carregado(s).`;
+
+            if (primeiroComCoordenadas) {
+                atualizarIframeMapa(primeiroComCoordenadas.coords, primeiroComCoordenadas.nome);
+            } else {
+                mostrarCentroPadrao();
+                mapaEstado.textContent = "Locais carregados, mas nenhum documento possui coordenadas validas.";
+            }
+        }
+
+        function mensagemErroFirestore(erro) {
+            if (!erro || !erro.code) {
+                return "Erro ao carregar locais. Verifique a configuracao e regras do Firestore.";
+            }
+
+            if (erro.code === "permission-denied") {
+                return `Sem permissao para ler '${nomeColecao}'. Ajuste as regras do Firestore para permitir leitura.`;
+            }
+
+            if (erro.code === "unavailable") {
+                return "Servico indisponivel no momento. Verifique internet e tente novamente.";
+            }
+
+            if (erro.code === "not-found") {
+                return "Projeto ou banco nao encontrado. Confira projectId e configuracao do Firebase.";
+            }
+
+            return `Falha ao carregar locais (${erro.code}).`;
+        }
+
+        // Consumo dos dados em tempo real da colecao 'nomeDoLocal'.
+        const locaisRef = collection(db, nomeColecao);
+        onSnapshot(
+            locaisRef,
+            (snapshot) => {
+                renderizarLocais(snapshot);
+            },
+            (erro) => {
+                console.error("Erro ao buscar locais:", erro);
+                estado.textContent = mensagemErroFirestore(erro);
+            }
+        );
+
+        mostrarCentroPadrao();
+    </script>
+</body>
+</html>
