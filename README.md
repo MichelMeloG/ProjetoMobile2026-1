@@ -1,5 +1,9 @@
 # MapS2 - Inicio Completo
 
+https://michelmelog.github.io/ProjetoMobile2026-1/rastreador.html
+
+https://michelmelog.github.io/ProjetoMobile2026-1/
+
 Este projeto tem duas paginas:
 
 - `index.html`: painel que mostra locais em tempo real e mapa por iframe.
