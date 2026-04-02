@@ -52,3 +52,28 @@ Observacoes:
 - Geolocation no celular exige HTTPS.
 - GitHub Pages ja fornece HTTPS.
 - Se tiver erro `permission-denied`, revise as regras do Firestore.
+
+
+
+cores ibmec:
+
+**Cores Neutras (Textos e Fundos base)**
+* **Escuros:** `#121212` (Dark Pure / Foco principal), `#424242` (Dark Low), `#A3A3A3` (Dark High)
+* **Claros:** `#FFFFFF` (Light Pure / Branco), `#F5F5F5` (Light High), `#E0E0E0` (Light Low)
+
+**Cores de Ação (Botões, Links e Destaques)**
+* **Ação Primária (Azul/Marinho):** `#002555` (Pure), `#00122A` (Low), `#BFC8D4` (High)
+* **Ação Secundária (Amarelo/Mostarda):** `#F5AC00` (Pure), `#7A5600` (Low), `#FCEABF` (High / Hover de botões)
+
+**Cores de Feedback (Alertas, Sucessos e Erros)**
+* **Positivo (Verde):** `#54D073` (Pure), `#1C662E` (Low), `#CFF2D8` (High)
+* **Negativo (Vermelho):** `#FF8771` (Pure), `#991700` (Low), `#FFDAD3` (High)
+* **Aviso/Warning (Laranja):** `#FFAA33` (Pure), `#8C4400` (Low), `#FFEAC1` (High)
+
+**Cores de Fundo (Backgrounds)**
+* **Sistema (Cinzas e Grafites):** `#B5B3B3` (Pure), `#454444` (Low), `#E4E4E4` (High)
+* **Público 01 (Ciano/Azul Claro):** `#39C1EC` (Pure), `#1F6C87` (Low), `#BBECFC` (High - também usado como a cor de tema do navegador no `<meta name="theme-color">`)
+* **Público 02 (Azul Escuro/Vivo):** `#1245FF` (Pure), `#092380` (Low - usado no fundo do rodapé), `#C4D0FF` (High)
+
+**Outros (Transparência / Sombras)**
+* Fundo principal com opacidade: `rgba(18, 18, 18, 0.62)`

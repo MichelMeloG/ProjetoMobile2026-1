@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#BBECFC" />
     <title>Monitoramento de Onibus em Tempo Real</title>
     <link
         rel="stylesheet"
@@ -12,25 +13,58 @@
     />
     <style>
         :root {
+            --neutral-dark-pure: #121212;
+            --neutral-dark-low: #424242;
+            --neutral-dark-high: #A3A3A3;
+            --neutral-light-pure: #FFFFFF;
+            --neutral-light-high: #F5F5F5;
+            --neutral-light-low: #E0E0E0;
+            --action-primary-pure: #002555;
+            --action-primary-low: #00122A;
+            --action-primary-high: #BFC8D4;
+            --action-secondary-pure: #F5AC00;
+            --action-secondary-low: #7A5600;
+            --action-secondary-high: #FCEABF;
+            --feedback-positive-pure: #54D073;
+            --feedback-positive-low: #1C662E;
+            --feedback-positive-high: #CFF2D8;
+            --feedback-negative-pure: #FF8771;
+            --feedback-negative-low: #991700;
+            --feedback-negative-high: #FFDAD3;
+            --feedback-warning-pure: #FFAA33;
+            --feedback-warning-low: #8C4400;
+            --feedback-warning-high: #FFEAC1;
+            --bg-system-pure: #B5B3B3;
+            --bg-system-low: #454444;
+            --bg-system-high: #E4E4E4;
+            --bg-public-1-pure: #39C1EC;
+            --bg-public-1-low: #1F6C87;
+            --bg-public-1-high: #BBECFC;
+            --bg-public-2-pure: #1245FF;
+            --bg-public-2-low: #092380;
+            --bg-public-2-high: #C4D0FF;
+
             --bg-panel: rgba(255, 255, 255, 0.94);
-            --text-main: #13263b;
-            --text-soft: #4f5f73;
-            --line: rgba(19, 38, 59, 0.16);
-            --accent: #0f9d85;
-            --accent-strong: #0b7a67;
-            --shadow: 0 14px 34px rgba(14, 33, 56, 0.16);
-            --map-background: #dbe4ee;
+            --text-main: var(--action-primary-pure);
+            --text-soft: #4a5664;
+            --line: #d5dbe3;
+            --accent: var(--action-primary-pure);
+            --accent-strong: var(--action-primary-low);
+            --accent-soft: #f7fafc;
+            --shadow: 0 14px 28px rgba(18, 18, 18, 0.11);
+            --map-background: var(--bg-public-1-high);
         }
 
         body[data-theme="dark"] {
-            --bg-panel: rgba(17, 28, 40, 0.94);
-            --text-main: #e5edf7;
-            --text-soft: #a4b7ce;
-            --line: rgba(206, 221, 238, 0.16);
-            --accent: #22b89b;
-            --accent-strong: #17a187;
-            --shadow: 0 20px 34px rgba(0, 0, 0, 0.42);
-            --map-background: #0f1a27;
+            --bg-panel: rgba(18, 18, 18, 0.9);
+            --text-main: var(--neutral-light-pure);
+            --text-soft: #cad4df;
+            --line: #3a3a3a;
+            --accent: var(--bg-public-2-pure);
+            --accent-strong: var(--bg-public-2-low);
+            --accent-soft: rgba(245, 172, 0, 0.18);
+            --shadow: 0 20px 34px rgba(0, 0, 0, 0.45);
+            --map-background: var(--neutral-dark-pure);
         }
 
         * {
@@ -65,16 +99,16 @@
             padding: 10px;
             background: var(--bg-panel);
             border: 1px solid var(--line);
-            border-radius: 14px;
+            border-radius: 18px;
             box-shadow: var(--shadow);
             backdrop-filter: blur(7px);
         }
 
         .actions-button {
             border: 0;
-            background: linear-gradient(130deg, #1f76bf, #295f9a);
+            background: linear-gradient(130deg, var(--accent), var(--accent-strong));
             color: #ffffff;
-            border-radius: 9px;
+            border-radius: 12px;
             min-height: 36px;
             padding: 0 12px;
             font-weight: 700;
@@ -104,8 +138,8 @@
         }
 
         body[data-theme="dark"] .floating-link {
-            background: rgba(12, 20, 30, 0.92);
-            color: #dbe9f9;
+            background: #242424;
+            color: var(--neutral-light-pure);
         }
 
         .theme-toggle {
@@ -120,8 +154,8 @@
         }
 
         body[data-theme="dark"] .theme-toggle {
-            background: rgba(12, 20, 30, 0.92);
-            color: #dbe9f9;
+            background: #242424;
+            color: var(--neutral-light-pure);
         }
 
         .panel {
@@ -133,13 +167,13 @@
             z-index: 999;
             background: var(--bg-panel);
             border: 1px solid var(--line);
-            border-radius: 16px;
+            border-radius: 22px;
             box-shadow: var(--shadow);
             backdrop-filter: blur(8px);
             display: grid;
             grid-template-rows: auto auto 1fr auto;
             gap: 10px;
-            padding: 14px;
+            padding: 16px;
             transition: transform 0.3s ease;
         }
 
@@ -173,32 +207,38 @@
         }
 
         .device-item {
-            border: 1px solid rgba(19, 38, 59, 0.14);
-            border-radius: 11px;
-            padding: 11px;
+            border: 1px solid var(--neutral-light-low);
+            border-radius: 16px;
+            padding: 12px;
             margin-top: 2px;
-            background: linear-gradient(160deg, #ffffff, #f3f8fc);
+            background: linear-gradient(165deg, #ffffff, #f7fafc);
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         body[data-theme="dark"] .device-item {
-            background: linear-gradient(160deg, rgba(16, 28, 40, 0.95), rgba(23, 36, 51, 0.95));
-            border-color: rgba(173, 195, 220, 0.18);
+            background: linear-gradient(160deg, #1b1b1b, #242424);
+            border-color: #424242;
+        }
+
+        body[data-theme="dark"] .device-item span,
+        body[data-theme="dark"] .device-item small,
+        body[data-theme="dark"] .device-desc {
+            color: #d2dde8;
         }
 
         .device-item:hover {
-            border-color: rgba(15, 122, 103, 0.42);
+            border-color: var(--action-secondary-pure);
         }
 
         .device-item.active {
-            border-color: rgba(15, 122, 103, 0.8);
-            box-shadow: inset 0 0 0 1px rgba(15, 122, 103, 0.35);
-            background: linear-gradient(160deg, #e8f6f2, #f2fbf8);
+            border-color: var(--action-primary-pure);
+            box-shadow: inset 0 0 0 1px rgba(0, 37, 85, 0.32);
+            background: linear-gradient(160deg, #e8f0ff, #fff8e8);
         }
 
         body[data-theme="dark"] .device-item.active {
-            background: linear-gradient(160deg, rgba(21, 61, 72, 0.92), rgba(18, 50, 60, 0.92));
+            background: linear-gradient(160deg, rgba(18, 69, 255, 0.23), rgba(245, 172, 0, 0.14));
         }
 
         .device-item strong {
@@ -231,58 +271,58 @@
         }
 
         .status-pill.on-time {
-            background: rgba(26, 160, 131, 0.14);
-            color: #16715d;
+            background: var(--feedback-positive-high);
+            color: var(--feedback-positive-low);
         }
 
         .status-pill.late {
-            background: rgba(221, 79, 90, 0.16);
-            color: #a83541;
+            background: var(--feedback-negative-high);
+            color: var(--feedback-negative-low);
         }
 
         .status-pill.coming {
-            background: rgba(240, 169, 58, 0.18);
-            color: #8f6115;
+            background: var(--feedback-warning-high);
+            color: var(--feedback-warning-low);
         }
 
         .status-pill.offline {
-            background: rgba(97, 113, 130, 0.2);
-            color: #3d4b5a;
+            background: #ececec;
+            color: #555555;
         }
 
         body[data-theme="dark"] .status-pill.on-time {
-            background: rgba(40, 185, 154, 0.2);
-            color: #97f0dd;
+            background: rgba(84, 208, 115, 0.2);
+            color: #9be7ae;
         }
 
         body[data-theme="dark"] .status-pill.late {
-            background: rgba(223, 97, 109, 0.2);
-            color: #ffbec4;
+            background: rgba(255, 135, 113, 0.22);
+            color: #ffd0c7;
         }
 
         body[data-theme="dark"] .status-pill.coming {
-            background: rgba(239, 178, 77, 0.2);
-            color: #ffd594;
+            background: rgba(255, 170, 51, 0.24);
+            color: #ffe0ac;
         }
 
         body[data-theme="dark"] .status-pill.offline {
-            background: rgba(124, 144, 165, 0.2);
-            color: #d1dfed;
+            background: rgba(163, 163, 163, 0.24);
+            color: #f0f0f0;
         }
 
         .time-pill {
             border-radius: 999px;
             padding: 3px 8px;
-            background: rgba(31, 118, 191, 0.12);
-            color: #1c5f99;
+            background: var(--action-secondary-high);
+            color: var(--action-secondary-low);
             font-size: 0.75rem;
             font-weight: 700;
             white-space: nowrap;
         }
 
         body[data-theme="dark"] .time-pill {
-            background: rgba(53, 154, 240, 0.18);
-            color: #93cbff;
+            background: rgba(245, 172, 0, 0.26);
+            color: #ffe0ac;
         }
 
         .device-desc {
@@ -300,7 +340,7 @@
         }
 
         .legend {
-            border-top: 1px dashed rgba(19, 38, 59, 0.2);
+            border-top: 1px dashed var(--line);
             padding-top: 10px;
             color: var(--text-soft);
             font-size: 0.84rem;
@@ -308,22 +348,9 @@
             gap: 4px;
         }
 
-        .pill {
-            position: fixed;
-            z-index: 900;
-            right: 16px;
-            bottom: 18px;
-            background: rgba(19, 38, 59, 0.9);
-            color: #ecf2f8;
-            border-radius: 999px;
-            padding: 8px 14px;
-            font-size: 0.83rem;
-            border: 1px solid rgba(236, 242, 248, 0.2);
-        }
-
         .leaflet-tooltip.bus-label {
-            background: rgba(13, 34, 56, 0.88);
-            color: #f5f8fc;
+            background: rgba(0, 37, 85, 0.9);
+            color: var(--neutral-light-pure);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             box-shadow: none;
@@ -342,9 +369,9 @@
             width: 26px;
             height: 26px;
             border-radius: 8px;
-            background: #1f76bf;
-            color: #ffffff;
-            border: 2px solid #ffffff;
+            background: var(--action-primary-pure);
+            color: var(--neutral-light-pure);
+            border: 2px solid var(--neutral-light-pure);
             box-shadow: 0 8px 14px rgba(14, 33, 56, 0.3);
             display: flex;
             align-items: center;
@@ -426,7 +453,7 @@
     <aside id="painel" class="panel" aria-label="Menu de monitoramento">
         <div>
             <h1>Rastreamento de Onibus</h1>
-            <p>Selecione um onibus para visualizar trajeto, descricao e horario.</p>
+            <p>Painel de rota em tempo real para operacao de transporte universitario.</p>
         </div>
 
         <p class="cards-intro">Linhas disponiveis agora</p>
@@ -439,8 +466,6 @@
             <span>Icone verde: onibus selecionado</span>
         </div>
     </aside>
-
-    <div id="contador" class="pill">0 onibus online</div>
 
     <script
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -477,7 +502,6 @@
         const lista = document.getElementById("locais-lista");
         const estado = document.getElementById("estado");
         const mapaEstado = document.getElementById("mapa-estado");
-        const contador = document.getElementById("contador");
         const themeToggle = document.getElementById("theme-toggle");
 
         const centroPadraoBrasil = [-14.235, -51.9253];
@@ -845,7 +869,6 @@
             if (snapshot.empty) {
                 estado.textContent = `Nenhum local encontrado na colecao '${nomeColecao}'.`;
                 localSelecionadoId = "";
-                contador.textContent = "0 onibus online";
                 atualizarMensagemTopo("Nenhum onibus ativo. Aguardando dados...");
                 return;
             }
@@ -949,14 +972,12 @@
             atualizarIndicadorSelecao();
 
             estado.textContent = `${quantidadeComCoordenadas} onibus com GPS ativo.`;
-            contador.textContent = `${quantidadeComCoordenadas} onibus online`;
 
             if (quantidadeComCoordenadas === 0) {
                 localSelecionadoId = "";
                 ultimoFocoMs = 0;
                 ultimoFocoPosicao = null;
                 estado.textContent = "Nenhum onibus com sinal GPS ativo.";
-                contador.textContent = "0 onibus online";
                 atualizarMensagemTopo("Aguardando onibus enviar sinal de GPS...");
                 map.setView(centroPadraoBrasil, 4);
                 return;
@@ -1005,11 +1026,15 @@
                 map.invalidateSize();
                 if (window.innerWidth > 620) {
                     painel.classList.add("open");
+                } else {
+                    painel.classList.remove("open");
                 }
             });
 
             if (window.innerWidth > 620) {
                 painel.classList.add("open");
+            } else {
+                painel.classList.remove("open");
             }
         }
 
