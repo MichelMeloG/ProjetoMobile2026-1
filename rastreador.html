@@ -5,109 +5,294 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rastreador GPS para Firebase</title>
     <style>
+        @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+        :root {
+            --bg-main: #f4f8fb;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-main: #13263b;
+            --text-soft: #4f6073;
+            --line: rgba(19, 38, 59, 0.16);
+            --primary: #0f9d85;
+            --primary-strong: #0b7a67;
+            --danger: #d7414c;
+            --danger-strong: #b72f39;
+            --shadow: 0 16px 42px rgba(21, 43, 72, 0.13);
+        }
+
+        body[data-theme="dark"] {
+            --bg-main: #101a25;
+            --bg-card: rgba(17, 28, 40, 0.9);
+            --text-main: #e5edf7;
+            --text-soft: #9eb1c7;
+            --line: rgba(214, 228, 245, 0.18);
+            --primary: #22b89b;
+            --primary-strong: #18a188;
+            --danger: #df5d67;
+            --danger-strong: #cc4f59;
+            --shadow: 0 16px 42px rgba(0, 0, 0, 0.38);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            margin: 16px;
-            background: #f3f4f6;
-            color: #111827;
+            margin: 0;
+            min-height: 100dvh;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at 12% 18%, rgba(15, 157, 133, 0.2), transparent 38%),
+                radial-gradient(circle at 88% 10%, rgba(43, 126, 200, 0.17), transparent 35%),
+                linear-gradient(160deg, #f5f9fc, #e8eef5 56%, #eef3f8);
+            padding: 22px;
+        }
+
+        body[data-theme="dark"] {
+            background:
+                radial-gradient(circle at 12% 18%, rgba(34, 184, 155, 0.2), transparent 38%),
+                radial-gradient(circle at 88% 10%, rgba(62, 132, 208, 0.18), transparent 35%),
+                linear-gradient(160deg, #0d1824, #111d2a 56%, #142131);
         }
 
         main {
-            max-width: 560px;
+            max-width: 760px;
             margin: 0 auto;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(6px);
+            animation: surgir 0.52s ease both;
         }
 
         h1 {
-            margin-top: 0;
-            font-size: 1.2rem;
+            margin: 0;
+            font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+            font-size: clamp(1.3rem, 1rem + 1.2vw, 2rem);
+            letter-spacing: -0.02em;
+        }
+
+        .subtitulo {
+            margin: 8px 0 0;
+            color: var(--text-soft);
+            max-width: 60ch;
+        }
+
+        .topo-links {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .chip-link {
+            text-decoration: none;
+            color: var(--text-main);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.7);
+            transition: all 0.22s ease;
+        }
+
+        .chip-link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 122, 103, 0.45);
+            color: var(--primary-strong);
+        }
+
+        .theme-toggle {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.75);
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        body[data-theme="dark"] .theme-toggle,
+        body[data-theme="dark"] .chip-link {
+            background: rgba(12, 21, 31, 0.88);
+            color: #dce9f8;
+        }
+
+        .bloco {
+            margin-top: 18px;
+            background: linear-gradient(165deg, #ffffff, #f4f8fb);
+            border: 1px solid rgba(19, 38, 59, 0.12);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        body[data-theme="dark"] .bloco {
+            background: linear-gradient(165deg, rgba(16, 29, 43, 0.94), rgba(20, 35, 49, 0.94));
+            border-color: rgba(170, 191, 213, 0.22);
         }
 
         label {
             display: block;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             margin-bottom: 6px;
-            margin-top: 10px;
-            color: #374151;
+            margin-top: 12px;
+            color: #34475d;
+            font-weight: 600;
         }
 
         input {
             width: 100%;
             padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            border: 1px solid rgba(19, 38, 59, 0.2);
+            border-radius: 9px;
             box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.95);
+            font: inherit;
+            color: var(--text-main);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        body[data-theme="dark"] input {
+            background: rgba(11, 20, 30, 0.9);
+            border-color: rgba(175, 194, 216, 0.25);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: rgba(15, 122, 103, 0.5);
+            box-shadow: 0 0 0 3px rgba(15, 157, 133, 0.14);
         }
 
         .linha {
             display: grid;
-            gap: 8px;
+            gap: 6px;
             grid-template-columns: 1fr;
         }
 
         .botoes {
-            margin-top: 12px;
+            margin-top: 16px;
             display: grid;
-            gap: 8px;
+            gap: 10px;
             grid-template-columns: 1fr 1fr;
         }
 
         button {
             border: 0;
-            border-radius: 6px;
-            min-height: 42px;
+            border-radius: 10px;
+            min-height: 44px;
             color: #ffffff;
             font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition: transform 0.18s ease, filter 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
         }
 
         #iniciar {
-            background: #059669;
+            background: linear-gradient(135deg, var(--primary), #1874b0);
         }
 
         #parar {
-            background: #dc2626;
+            background: linear-gradient(135deg, var(--danger), #cf5b2e);
         }
 
         .estado {
-            margin-top: 10px;
-            color: #4b5563;
+            margin-top: 14px;
+            color: var(--text-soft);
             font-size: 0.95rem;
             word-break: break-word;
+            min-height: 1.2rem;
         }
 
         .dados {
             margin-top: 10px;
-            font-size: 0.9rem;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            padding: 10px;
+            font-size: 0.92rem;
+            background: #eef5fb;
+            border: 1px solid rgba(19, 38, 59, 0.13);
+            border-radius: 9px;
+            padding: 11px;
+            color: #284259;
+        }
+
+        body[data-theme="dark"] .dados {
+            background: rgba(14, 26, 39, 0.9);
+            border-color: rgba(170, 191, 213, 0.2);
+            color: #c8d8e9;
+        }
+
+        @keyframes surgir {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 12px;
+            }
+
+            main {
+                border-radius: 14px;
+                padding: 14px;
+            }
+
+            .bloco {
+                border-radius: 11px;
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .botoes {
+                grid-template-columns: 1fr;
+            }
+
+            .theme-toggle {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <main>
-        <h1>Enviar GPS do Celular</h1>
-        <p>Esta pagina envia sua localizacao em tempo real para o Firestore.</p>
+        <h1>Rastreador GPS</h1>
+        <p class="subtitulo">Envie a localizacao do dispositivo para o Firestore em tempo real com controle simples e status detalhado.</p>
+        <nav class="topo-links" aria-label="Navegacao rapida">
+            <a class="chip-link" href="index.html">Abrir painel de mapa</a>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar modo escuro">🌙 Tema</button>
+        </nav>
 
-        <div class="linha">
-            <label for="nome">Nome exibido no painel</label>
-            <input id="nome" type="text" value="Meu celular" />
+        <section class="bloco">
+            <div class="linha">
+                <label for="nome">Nome exibido no painel</label>
+                <input id="nome" type="text" value="Meu celular" />
 
-            <label for="docId">ID do documento (unico por aparelho)</label>
-            <input id="docId" type="text" value="celular-001" />
-        </div>
+                <label for="docId">ID do documento (unico por aparelho)</label>
+                <input id="docId" type="text" value="celular-001" />
+            </div>
 
-        <div class="botoes">
-            <button id="iniciar" type="button">Iniciar envio</button>
-            <button id="parar" type="button">Parar envio</button>
-        </div>
+            <div class="botoes">
+                <button id="iniciar" type="button">Iniciar envio</button>
+                <button id="parar" type="button">Parar envio</button>
+            </div>
 
-        <p id="estado" class="estado">Aguardando inicio...</p>
-        <div id="dados" class="dados">Sem dados de GPS ainda.</div>
+            <p id="estado" class="estado">Aguardando inicio...</p>
+            <div id="dados" class="dados">Sem dados de GPS ainda.</div>
+        </section>
     </main>
 
     <script type="module">
@@ -138,8 +323,28 @@
         const docIdInput = document.getElementById("docId");
         const estado = document.getElementById("estado");
         const dados = document.getElementById("dados");
+        const themeToggle = document.getElementById("theme-toggle");
         const iniciar = document.getElementById("iniciar");
         const parar = document.getElementById("parar");
+        const STORAGE_THEME_KEY = "monitor-tema";
+
+        function aplicarTema(tema) {
+            const temaFinal = tema === "dark" ? "dark" : "light";
+            document.body.setAttribute("data-theme", temaFinal);
+            localStorage.setItem(STORAGE_THEME_KEY, temaFinal);
+            themeToggle.textContent = temaFinal === "dark" ? "☀️ Tema" : "🌙 Tema";
+        }
+
+        function iniciarTema() {
+            const salvo = localStorage.getItem(STORAGE_THEME_KEY);
+            if (salvo) {
+                aplicarTema(salvo);
+                return;
+            }
+
+            const prefereEscuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            aplicarTema(prefereEscuro ? "dark" : "light");
+        }
 
         const nomeColecao = "nomeDoLocal";
         let watchId = null;
@@ -220,6 +425,12 @@
 
         iniciar.addEventListener("click", iniciarRastreamento);
         parar.addEventListener("click", pararRastreamento);
+        themeToggle.addEventListener("click", () => {
+            const atual = document.body.getAttribute("data-theme") === "dark" ? "dark" : "light";
+            aplicarTema(atual === "dark" ? "light" : "dark");
+        });
+
+        iniciarTema();
     </script>
 </body>
 </html>
