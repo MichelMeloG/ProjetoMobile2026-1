@@ -483,13 +483,23 @@
         const centroPadraoBrasil = [-14.235, -51.9253];
         const nomeColecao = "nomeDoLocal";
         const LIMITE_SINAL_MS = 2 * 60 * 1000;
+        const JITTER_BASE_METROS = 12;
+        const JITTER_MAX_METROS = 60;
+        const JITTER_HOLD_MS = 15000;
+        const FILTRO_ALPHA_CURTO = 0.28;
+        const FILTRO_ALPHA_LONGO = 0.55;
+        const RECENTER_MIN_INTERVAL_MS = 2500;
+        const RECENTER_MIN_DESLOCAMENTO = 25;
 
         let localSelecionadoId = "";
+        let ultimoFocoMs = 0;
+        let ultimoFocoPosicao = null;
 
         const markers = new Map();
         const trilhas = new Map();
         const historicoPosicoes = new Map();
         const dadosPorId = new Map();
+        const estadoSuavizacao = new Map();
         const STORAGE_THEME_KEY = "monitor-tema";
         const MAP_TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
         const MAP_TILE_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -671,6 +681,48 @@
             return Date.now() - atualizadoMs <= LIMITE_SINAL_MS;
         }
 
+        function obterPrecisaoMetros(dados) {
+            const valor = dados.precisao ?? dados.accuracy ?? dados.acuracia;
+            if (typeof valor === "number" && !Number.isNaN(valor)) {
+                return valor;
+            }
+
+            if (typeof valor === "string") {
+                const numero = Number(valor.replace(",", "."));
+                if (!Number.isNaN(numero)) {
+                    return numero;
+                }
+            }
+
+            return 20;
+        }
+
+        function suavizarCoordenadas(id, coords, dados) {
+            const agora = Date.now();
+            const anterior = estadoSuavizacao.get(id);
+
+            if (!anterior) {
+                estadoSuavizacao.set(id, { lat: coords.lat, lng: coords.lng, ts: agora });
+                return coords;
+            }
+
+            const deslocamento = map.distance([anterior.lat, anterior.lng], [coords.lat, coords.lng]);
+            const precisao = obterPrecisaoMetros(dados);
+            const limiarJitter = Math.min(JITTER_MAX_METROS, Math.max(JITTER_BASE_METROS, precisao * 0.65));
+
+            if (deslocamento < limiarJitter && agora - anterior.ts < JITTER_HOLD_MS) {
+                return { lat: anterior.lat, lng: anterior.lng };
+            }
+
+            const alpha = deslocamento > 120 ? FILTRO_ALPHA_LONGO : FILTRO_ALPHA_CURTO;
+            const lat = anterior.lat + (coords.lat - anterior.lat) * alpha;
+            const lng = anterior.lng + (coords.lng - anterior.lng) * alpha;
+            const suavizada = { lat, lng };
+
+            estadoSuavizacao.set(id, { lat, lng, ts: agora });
+            return suavizada;
+        }
+
         function obterStatusExibicao(dados) {
             const valor = (dados.status || dados.situacao || "No horario").toString().trim();
             return valor || "No horario";
@@ -715,7 +767,7 @@
             if (coords) {
                 li.addEventListener("click", () => {
                     localSelecionadoId = id;
-                    focarEmDispositivo(id);
+                    focarEmDispositivo(id, true);
                     atualizarIndicadorSelecao();
                 });
             }
@@ -723,7 +775,7 @@
             return li;
         }
 
-        function focarEmDispositivo(id) {
+        function focarEmDispositivo(id, forcar = false) {
             const dados = dadosPorId.get(id);
             const ponto = markers.get(id);
             if (!dados || !ponto) {
@@ -733,10 +785,26 @@
             const nome = obterNomeExibicao(dados);
             const lat = ponto.marker.getLatLng().lat;
             const lng = ponto.marker.getLatLng().lng;
+            const destino = [lat, lng];
+            const agora = Date.now();
 
-            map.flyTo([lat, lng], Math.max(map.getZoom(), 16), {
-                duration: 1
-            });
+            if (!forcar && ultimoFocoPosicao) {
+                const dist = map.distance(ultimoFocoPosicao, destino);
+                const aindaNoCooldown = agora - ultimoFocoMs < RECENTER_MIN_INTERVAL_MS;
+                if (aindaNoCooldown && dist < RECENTER_MIN_DESLOCAMENTO) {
+                    atualizarMensagemTopo(`Seguindo ${nome} (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
+                    return;
+                }
+            }
+
+            if (forcar) {
+                map.flyTo(destino, Math.max(map.getZoom(), 16), { duration: 0.9 });
+            } else {
+                map.panTo(destino, { animate: true, duration: 0.6 });
+            }
+
+            ultimoFocoMs = agora;
+            ultimoFocoPosicao = destino;
 
             atualizarMensagemTopo(`Seguindo ${nome} (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
         }
@@ -788,8 +856,8 @@
             snapshot.forEach((documento) => {
                 const dados = documento.data();
                 const id = documento.id;
-                const coords = obterCoordenadas(dados);
-                const sinalAtivo = dispositivoComSinalAtivo(dados, coords);
+                const coordsBrutas = obterCoordenadas(dados);
+                const sinalAtivo = dispositivoComSinalAtivo(dados, coordsBrutas);
                 const nome = obterNomeExibicao(dados);
 
                 if (!sinalAtivo) {
@@ -802,8 +870,11 @@
                         trilhas.delete(id);
                     }
                     historicoPosicoes.delete(id);
+                    estadoSuavizacao.delete(id);
                     return;
                 }
+
+                const coords = suavizarCoordenadas(id, coordsBrutas, dados);
 
                 idsPresentes.add(id);
                 dadosPorId.set(id, dados);
@@ -829,7 +900,7 @@
                     marker.on("click", () => {
                         localSelecionadoId = id;
                         atualizarIndicadorSelecao();
-                        focarEmDispositivo(id);
+                        focarEmDispositivo(id, true);
                     });
 
                     markers.set(id, { marker });
@@ -848,6 +919,7 @@
                 if (!idsPresentes.has(id)) {
                     map.removeLayer(item.marker);
                     markers.delete(id);
+                    estadoSuavizacao.delete(id);
                 }
             });
 
@@ -856,6 +928,7 @@
                     map.removeLayer(polyline);
                     trilhas.delete(id);
                     historicoPosicoes.delete(id);
+                    estadoSuavizacao.delete(id);
                 }
             });
 
@@ -880,6 +953,8 @@
 
             if (quantidadeComCoordenadas === 0) {
                 localSelecionadoId = "";
+                ultimoFocoMs = 0;
+                ultimoFocoPosicao = null;
                 estado.textContent = "Nenhum onibus com sinal GPS ativo.";
                 contador.textContent = "0 onibus online";
                 atualizarMensagemTopo("Aguardando onibus enviar sinal de GPS...");
